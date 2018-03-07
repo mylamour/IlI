@@ -1,20 +1,17 @@
-
 #!/usr/bin/python
-# from ui_2015 import Ui_Addhost
+
 from contextlib import contextmanager
 import os,sys
-# import threading
 from queue import Queue
 
-# import scan_worker
 import importlib.util
 import random
 
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QThread, Qt
-from PyQt5.QtWidgets import QApplication, QDialog, QWidget, QFileDialog,QMessageBox
-from PyQt5.QtWidgets import (QCheckBox, QColorDialog, QDialog,
+from PyQt5.QtWidgets import QWidget,QListWidgetItem, QMessageBox
+from PyQt5.QtWidgets import (QApplication, QCheckBox, QColorDialog, QDialog,
                              QErrorMessage, QFileDialog, QFontDialog, QFrame, QGridLayout,
-                             QInputDialog, QLabel, QPushButton,QListWidgetItem)
+                             QInputDialog, QLabel, QPushButton)
 from PyQt5.uic import loadUiType
 
 current_directory =  os.path.dirname(os.path.abspath(__file__))
