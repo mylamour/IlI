@@ -62,6 +62,8 @@ class ScanForm(QWidget, scan_form):
     def __init__(self, *args):
         super(ScanForm, self).__init__(*args)
         self.setupUi(self)
+        self.move(QApplication.desktop().screen().rect().center() - self.rect().center()) # Center Display
+
         self.targetsumary.itemClicked.connect(self.on_targetsumary_itemclicked)
         self._plugins =  set()  # Keep a set of loaded plugins(no duplicate modules)
         self._scan_thread = ScanThread(self)
@@ -85,8 +87,13 @@ class ScanForm(QWidget, scan_form):
             line = self.hosts.text()
         # if net range, just compute it and add it to scan item
         try:
-            if line != "":
+            if line != "" and not self.existsitem(line, self.scanlists):
                 self.scanlists.addItem(line)
+                self.status.setText("Hosts Add Successful")
+                self.status.setStyleSheet('color: green')
+            else:
+                self.status.setText("Hosts Already Add")
+                self.status.setStyleSheet('color: red')
         except Exception as e:
             print(e)
             pass
@@ -96,14 +103,31 @@ class ScanForm(QWidget, scan_form):
     def onScanIpChanged(self,*args,**kwargs):
         # update current scanning ip here
         print("onScanIpChanged:",args,kwargs)
+        self.status.setText("Now Scan:\t"+str(args[0]))
 
     def onOneScanFinished(self,*args,**kwargs):
         # process scan result
-        print("onOneScanFinished:",args,kwargs)
+        print("onOneScanFinished:", args[-1])
+        try:
+            print(str(args))
+            if args[-1][0] == True:
+                self.scanresults.addItem(str(args[0]))
+                self.targetsumary.addItem(str(args[-1][1])[:10])
+                self.targetdetails.setText(str(args[-1][1]))
+        except Exception as e :
+            print(e)
+            pass
+
+        print("KWARGS:", kwargs)
 
     @pyqtSlot()
     def on_scan_clicked(self):
         selected_plugins = [item.text() for item in self.pluginlists.selectedItems()]
+
+        if not selected_plugins:
+            self.status.setText("Load Your Plugin Or Select A Pulgin")
+            self.status.setStyleSheet('color: red')
+
         modulelists = [plugin for plugin in self._plugins if plugin.__name__ in selected_plugins]
         iplists = [ item.text() for item in self.scanlists.selectedItems()]
         if self.hosts.text() != "":
@@ -158,9 +182,8 @@ class ScanForm(QWidget, scan_form):
                     if spec is not None:
                         module = importlib.util.module_from_spec(spec)
                         spec.loader.exec_module(module)
-                        exists = self.pluginlists.findItems(
-                            module.__name__, Qt.MatchExactly)
-                        if hasattr(module, "poc") and not exists:
+
+                        if hasattr(module, "poc") and not self.existsitem(module.__name__, self.pluginlists):
                             self._plugins.add(module)
                             self.pluginlists.addItem(module.__name__)
                         else:
@@ -194,7 +217,6 @@ class ScanForm(QWidget, scan_form):
             pass
 
     # Summary selected show details
-
     def setOpenFileName(self):
         options = QFileDialog.Options()
         try:
@@ -239,33 +261,26 @@ class ScanForm(QWidget, scan_form):
     def checkPath(self,path):
         pass
 
-    def unique(self,listwidgets):
-        pass    
-        # for i in range(listwidgets.count()):
-        #     print(listwidgets.item(i).text())
+    def existsitem(self,item,listwidgets):
+        """
+            if uniqueitem is true
+        """
+        exists = listwidgets.findItems(item, Qt.MatchExactly)
+        if exists:
+            return True
+        else:
+            return False
 
-    # def scan_by(self):
-        
-    #     selecthosts = self.scanlists.selectedItems()
 
-    #     scanhost = self.hosts.text()
-    #     reshost = self.scanresults.findItems(scanhost, MatchContains)
-
-    #     if scanhost != "" and reshost <= 0:
-    #         print(reshost)
-    #         return "host", scanhost
-                        
-    #     if selecthosts:
-    #         for ip in selecthosts:
-    #             ip = ip.text()
-    #             uqueue.put(ip)
-
+    # def updateitem(self,item,listwidgets):
+    #         """
+    #         if uniqueitem is true
+    #     """
+    #     exists = listwidgets.findItems(item, Qt.MatchExactly)
+    #     if exists:
+    #         listwidgets.
     #     else:
-    #         for i in range(self.scanlists.count()):
-    #             ip = str(self.scanlists.item(i).text())
-    #             uqueue.put(ip)
-
-    #     return "hosts", uqueue
+    #         return False
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
