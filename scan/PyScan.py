@@ -57,7 +57,6 @@ class ScanThread(QThread):
                     try:
                         self.single_scan_target.host = ip
                         self.single_scan_target.result = plugin.poc(ip)
-                        print(self.single_scan_target)
                         self.OneScanFinished.emit(deepcopy(self.single_scan_target))
                     except Exception as e:
                         self.OneScanFinished.emit(deepcopy(self.single_scan_target))

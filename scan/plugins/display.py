@@ -18,7 +18,14 @@ def poc(ip):
         }
     elif ip.endswith("4"):
         res = {
-            "Exist": False,
+            "Exist": True,
+            "Problility":  summary,
+            'Summary': "Tobe or not tobe",
+            "Details": "Oh, Shit, I am mad king, and my summary is: "+summary
+        }
+    else:
+        res = {
+            "Exist": True,
             "Problility":  summary,
             'Summary': "Tobe or not tobe",
             "Details": "Oh, Shit, I am mad king, and my summary is: "+summary
