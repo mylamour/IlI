@@ -41,7 +41,7 @@ class ScanThread(QThread):
 
     @status.setter
     def status(self,new_status):
-        if new_status!=self._status:
+        if new_status!=self.scan_target._status:
             self.scan_target._status = new_status
             self.ScanStatusChanged.emit(new_status)
 
