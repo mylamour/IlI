@@ -5,11 +5,13 @@ from lib.util.datatype import AttribDict
 
 from contextlib import contextmanager
 import os,sys
+from copy import deepcopy
 from queue import Queue
 
 import importlib.util
 import random
 
+from PyQt5.QtGui import QColor
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QThread, Qt
 from PyQt5.QtWidgets import QWidget,QListWidgetItem, QMessageBox
 from PyQt5.QtWidgets import (QApplication, QCheckBox, QColorDialog, QDialog,
@@ -20,44 +22,47 @@ from PyQt5.uic import loadUiType
 current_directory =  os.path.dirname(os.path.abspath(__file__))
 
 class ScanThread(QThread):
-    OneScanFinished = pyqtSignal(str,str,tuple)
+    OneScanFinished = pyqtSignal(AttribDict)
     ScanIpChanged = pyqtSignal(str,str)
     ScanStatusChanged = pyqtSignal(bool)
 
     def __init__(self,scan_target):
         QThread.__init__(self)
-        self.scan_target = AttribDict()
-        self.scan_target._hosts = []
-        self.scan_target._plugins = []
-        self.scan_target._status = False   # run status
+        self.single_scan_target = AttribDict()
+        self.single_scan_target.result = {}
+        self._hosts = []
+        self._plugins = []
+        self._status = False   # run status
 
-    def set_argument(self,scan_target):
-        self.scan_target._hosts = scan_target.iplists
-        self.scan_target._plugins = scan_target.modulelists
+    def set_argument(self,iplists,modulelists):
+        self._hosts = iplists
+        self._plugins = modulelists
 
     @property
     def status(self):
-        return self.scan_target._status
+        return self._status
 
     @status.setter
     def status(self,new_status):
-        if new_status!=self.scan_target._status:
-            self.scan_target._status = new_status
+        if new_status!=self._status:
+            self._status = new_status
             self.ScanStatusChanged.emit(new_status)
 
     def run(self):
-        self.scan_target.status = True
-        for ip in self.scan_target._hosts:
-            for plugin in self.scan_target._plugins:
+        self.status = True
+        for ip in self._hosts:
+            for plugin in self._plugins:
                 self.ScanIpChanged.emit(ip,plugin.__name__)
-                if self.scan_target._status:
+                if self._status:
                     try:
-                        self.scan_target.result = plugin.poc(ip)
-                        self.OneScanFinished.emit(
-                            ip, plugin.__name__, self.scan_target)
-                    except:
-                        self.OneScanFinished.emit(ip,plugin.__name__,(False,"Exception Occurred"))
-        self.scan_target.status = False
+                        self.single_scan_target.host = ip
+                        self.single_scan_target.result = plugin.poc(ip)
+                        print(self.single_scan_target)
+                        self.OneScanFinished.emit(deepcopy(self.single_scan_target))
+                    except Exception as e:
+                        self.OneScanFinished.emit(deepcopy(self.single_scan_target))
+                        pass
+        self.status = False
 
 
 scan_form, base_class = loadUiType(os.path.join(current_directory,'knife.ui'))
@@ -67,6 +72,10 @@ class ScanForm(QWidget, scan_form):
         self.setupUi(self)
         self.move(QApplication.desktop().screen().rect().center() - self.rect().center()) # Center Display
         self.targetsumary.itemClicked.connect(self.on_targetsumary_itemclicked)
+        self.scanresults.itemClicked.connect(self.on_scanresults_itemclicked)
+
+
+
         self._plugins =  set()  # Keep a set of loaded plugins(no duplicate modules)
         self._scan_thread = ScanThread(self)
         self._scan_thread.ScanIpChanged.connect(self.onScanIpChanged)
@@ -103,31 +112,34 @@ class ScanForm(QWidget, scan_form):
         self.lcddisplay()
 
     def onScanIpChanged(self,scan_target):
-        print(scan_target)
-
+        self.status.setText("  Now Scan:\t"+scan_target)
+        self.status.setStyleSheet('color: red')
+        
     def onOneScanFinished(self, scan_target):
-        print(scan_target)
+        if scan_target.result['Exist']:
+            self.scanresults.addItem(scan_target.host)
+            self.targetsumary.addItem(scan_target.result['Summary'])
 
     @pyqtSlot()
     def on_scan_clicked(self):
         selected_plugins = [item.text() for item in self.pluginlists.selectedItems()]
 
-        if not selected_plugins:
-            self.status.setText("Load Your Plugin Or Select A Pulgin")
-            self.status.setStyleSheet('color: red')
-
         modulelists = [plugin for plugin in self._plugins if plugin.__name__ in selected_plugins]
         iplists = [item.text() for item in self.scanlists.selectedItems()]
+        
 
         if self.hosts.text() != "":
-            self.iplists = [self.hosts.text()]
+            iplists = [self.hosts.text()]
+            
         if iplists and modulelists:
-
-            scan_target = AttribDict()
-            scan_target.modulelists = modulelists
-            scan_target.iplists = iplists
-            self._scan_thread.set_argument(scan_target)
+            # scan_target = AttribDict()
+            # scan_target.modulelists = modulelists
+            # scan_target.iplists = iplists
+            self._scan_thread.set_argument(iplists,modulelists)
             self._scan_thread.start()
+        else:
+            self.status.setText("Select Target And Pulgin")
+            self.status.setStyleSheet('color: red')
 
     @pyqtSlot()
     def on_removescan_clicked(self):
@@ -160,6 +172,11 @@ class ScanForm(QWidget, scan_form):
         except  Exception as e:
             print(e)
             pass
+
+    @pyqtSlot()
+    def on_scanresults_itemclicked(self):
+        pass
+
 
     @pyqtSlot()
     def on_loadplugins_clicked(self):
@@ -227,7 +244,7 @@ class ScanForm(QWidget, scan_form):
         self.hostscount.display(self.scanlists.count())
         self.pluginscount.display(self.pluginlists.count())
         self.resultscount.display(self.scanresults.count())
-
+        
     def removeListWidgets(self, listwidgets):
         try:
 
