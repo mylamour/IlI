@@ -43,9 +43,10 @@ class AttribDict(dict):
             return self.__getitem__(item)
         except KeyError:
             raise ("unable to access item '%s'" % item)
-        finally:
-            import sys
-            sys.exit()
+            # print()
+        # finally:
+        #     import sys
+        #     sys.exit()
 
     def __setattr__(self, item, value):
         """

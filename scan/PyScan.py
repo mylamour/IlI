@@ -103,10 +103,10 @@ class ScanForm(QWidget, scan_form):
         self.lcddisplay()
 
     def onScanIpChanged(self,scan_target):
-        print(scan_target.result)
+        print(scan_target)
 
     def onOneScanFinished(self, scan_target):
-        print(scan_target.result)
+        print(scan_target)
 
     @pyqtSlot()
     def on_scan_clicked(self):
