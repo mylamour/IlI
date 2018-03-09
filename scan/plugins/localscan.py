@@ -6,8 +6,6 @@ import re
 
 from colorama import Fore, Back, Style
 
-hostsfile = './ip.list'
-
 result = []
 
 uqueue = queue.Queue()
