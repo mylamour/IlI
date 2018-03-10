@@ -2,14 +2,17 @@
 
 
 from lib.util.datatype import AttribDict
+from lib.util.db import summary2detail, insertDB
 
 from contextlib import contextmanager
 import os,sys
 from copy import deepcopy
 from queue import Queue
+from uuid import uuid1
 
 import importlib.util
 import random
+import json
 
 from PyQt5.QtGui import QColor
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QThread, Qt
@@ -70,7 +73,7 @@ class ScanForm(QWidget, scan_form):
         super(ScanForm, self).__init__()
         self.setupUi(self)
         self.move(QApplication.desktop().screen().rect().center() - self.rect().center()) # Center Display
-        self.targetsumary.itemClicked.connect(self.on_targetsumary_itemclicked)
+        # self.targetsumary.itemClicked.connect(self.on_targetsumary_itemclicked)
         self.scanresults.itemClicked.connect(self.on_scanresults_itemclicked)
 
 
@@ -115,12 +118,25 @@ class ScanForm(QWidget, scan_form):
         self.status.setStyleSheet('color: red')
         
     def onOneScanFinished(self, scan_target):
+        
         if scan_target.result['Exist']:
             self.scanresults.addItem(scan_target.host)
-            self.targetsumary.addItem(scan_target.result['Summary'])
+            u_id = str(uuid1())
+            s_id = str(uuid1())
+
+            scan_target.u_id = u_id
+            scan_target.s_id = s_id
+
+            insertDB(scan_target)
+        
+            self.targetsumary.setText(scan_target.result['Summary'])
 
     @pyqtSlot()
     def on_scan_clicked(self):
+
+        self.removeListWidgets(self.scanresults)
+        self.removeListWidgets(self.targetsumary)
+
         selected_plugins = [item.text() for item in self.pluginlists.selectedItems()]
 
         modulelists = [plugin for plugin in self._plugins if plugin.__name__ in selected_plugins]
@@ -131,9 +147,7 @@ class ScanForm(QWidget, scan_form):
             iplists = [self.hosts.text()]
             
         if iplists and modulelists:
-            # scan_target = AttribDict()
-            # scan_target.modulelists = modulelists
-            # scan_target.iplists = iplists
+    
             self._scan_thread.set_argument(iplists,modulelists)
             self._scan_thread.start()
         else:
@@ -146,7 +160,7 @@ class ScanForm(QWidget, scan_form):
         self.removeListWidgets(self.scanlists)
         self.removeListWidgets(self.pluginlists)
         self.removeListWidgets(self.scanresults)
-        self.removeListWidgets(self.targetsumary)
+        # self.removeListWidgets(self.targetsumary)
 
         self.lcddisplay()
 
@@ -164,17 +178,26 @@ class ScanForm(QWidget, scan_form):
 
         self.lcddisplay()
 
-    @pyqtSlot()
-    def on_targetsumary_itemclicked(self):
-        try:
-            self.targetdetails.setText(self.targetsumary.currentItem().text())
-        except  Exception as e:
-            print(e)
-            pass
+    # @pyqtSlot()
+    # def on_targetsumary_itemclicked(self):
+    #     try:
+    #         self.targetdetails.setText(self.targetsumary.currentItem().text())
+    #     except  Exception as e:
+    #         print(e)
+    #         pass
 
     @pyqtSlot()
     def on_scanresults_itemclicked(self):
-        pass
+        try:
+
+            s_item = self.scanresults.currentItem().text()
+            summary, detail = summary2detail(s_item)
+            self.targetsumary.setText(summary)
+            self.targetdetails.setText(detail)
+
+        except  Exception as e:
+            print(e)
+            pass
 
 
     @pyqtSlot()

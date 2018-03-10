@@ -315,11 +315,9 @@
    </property>
    <layout class="QVBoxLayout" name="verticalLayout_2">
     <item>
-     <widget class="QListWidget" name="targetsumary">
-      <property name="font">
-       <font>
-        <pointsize>7</pointsize>
-       </font>
+     <widget class="QLabel" name="targetsumary">
+      <property name="text">
+       <string>Target Summary</string>
       </property>
      </widget>
     </item>
