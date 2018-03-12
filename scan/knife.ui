@@ -134,7 +134,7 @@
     <item>
      <widget class="QListWidget" name="pluginlists">
       <property name="selectionMode">
-       <enum>QAbstractItemView::MultiSelection</enum>
+       <enum>QAbstractItemView::SingleSelection</enum>
       </property>
      </widget>
     </item>

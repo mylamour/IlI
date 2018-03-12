@@ -21,6 +21,7 @@ DB = SqliteDatabase(DBPATH)
 
 SCANSCHEMA = {
     "uid": '',
+    "b_id": '',
     "s_id": '',
     "s_item": '',
     "s_summary" : '',
@@ -31,6 +32,7 @@ SCANSCHEMA = {
 
 class SCAN(Model):
     uid = CharField(primary_key=True)
+    b_id = CharField()
     s_id = CharField()
     s_item = CharField()
     s_summary = CharField()
@@ -62,8 +64,9 @@ def insertDB(scanres):
 
     t_scan = {
         "uid": scanres.u_id,
+        'b_id': scanres.b_id,
         "s_id": scanres.s_id,
-        "s_item": scanres.host,
+        "s_item": scanres.target,
         "s_summary": scanres.result['Summary'],
         "s_details": scanres.result['Details'], 
         "s_result": scanres.result,
@@ -71,9 +74,9 @@ def insertDB(scanres):
     }
     try:
         with DB.atomic():
-            if SCAN.select().where(SCAN.s_item == scanres.host):
-                exists_host = SCAN.get(SCAN.s_item == scanres.host)
-                exists_host.delete_instance()
+            if SCAN.select().where(SCAN.s_item == scanres.target):
+                exists_target = SCAN.get(SCAN.s_item == scanres.target)
+                exists_target.delete_instance()
 
             SCAN.create(**t_scan)
 

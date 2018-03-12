@@ -13,59 +13,68 @@ from uuid import uuid1
 import importlib.util
 import random
 import json
+import traceback
+import logging
 
-from PyQt5.QtGui import QColor
-from PyQt5.QtCore import pyqtSignal, pyqtSlot, QThread, Qt
-from PyQt5.QtWidgets import QWidget,QListWidgetItem, QMessageBox
-from PyQt5.QtWidgets import (QApplication, QCheckBox, QColorDialog, QDialog,
-                             QErrorMessage, QFileDialog, QFontDialog, QFrame, QGridLayout,
-                             QInputDialog, QLabel, QPushButton)
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtWidgets import *
+
 from PyQt5.uic import loadUiType
 
 current_directory =  os.path.dirname(os.path.abspath(__file__))
 
-class ScanThread(QThread):
-    OneScanFinished = pyqtSignal(AttribDict)
-    ScanIpChanged = pyqtSignal(str,str)
-    ScanStatusChanged = pyqtSignal(bool)
+class ScanSignals(QObject):
+    
+    finished = pyqtSignal()
+    result = pyqtSignal(AttribDict)
+    
+    targetchanged = pyqtSignal(str,str)
+    statuschanged = pyqtSignal(bool)
 
-    def __init__(self,scan_target):
+    error = pyqtSignal(tuple)
+
+
+class ScanWorker(QRunnable):
+
+    def __init__(self,fn,host):
         QThread.__init__(self)
-        self.single_scan_target = AttribDict()
-        self.single_scan_target.result = {}
-        self._hosts = []
-        self._plugins = []
-        self._status = False   # run status
 
-    def set_argument(self,iplists,modulelists):
-        self._hosts = iplists
-        self._plugins = modulelists
+        self.single_scan_target = AttribDict()
+        self.single_scan_target.target = host
+        self.single_scan_target.plugin = fn
+        # self.single_scan_target.result = {}
+
+        self._status = False   # run status
+        self.signals = ScanSignals()
 
     @property
     def status(self):
         return self._status
 
     @status.setter
-    def status(self,new_status):
-        if new_status!=self._status:
+    def status(self, new_status):
+        if new_status != self._status:
             self._status = new_status
-            self.ScanStatusChanged.emit(new_status)
+            self.signals.statuschanged.emit(new_status)
 
     def run(self):
         self.status = True
-        for ip in self._hosts:
-            for plugin in self._plugins:
-                self.ScanIpChanged.emit(ip,plugin.__name__)
-                if self._status:
-                    try:
-                        self.single_scan_target.host = ip
-                        self.single_scan_target.result = plugin.poc(ip)
-                        self.OneScanFinished.emit(deepcopy(self.single_scan_target))
-                    except Exception as e:
-                        self.OneScanFinished.emit(deepcopy(self.single_scan_target))
-                        pass
-        self.status = False
 
+        try:
+            self.single_scan_target.result = self.single_scan_target.plugin(
+                self.single_scan_target.target)
+
+        except:
+            traceback.print_exc()
+            exctype, value = sys.exc_info()[:2]
+            self.signals.error.emit((exctype, value, traceback.format_exc()))
+        else:
+            self.signals.result.emit(deepcopy(self.single_scan_target))
+        finally:
+            self.signals.finished.emit()
+
+            self.status = False
 
 scan_form, base_class = loadUiType(os.path.join(current_directory,'knife.ui'))
 class ScanForm(QWidget, scan_form):
@@ -75,14 +84,11 @@ class ScanForm(QWidget, scan_form):
         self.move(QApplication.desktop().screen().rect().center() - self.rect().center()) # Center Display
         # self.targetsumary.itemClicked.connect(self.on_targetsumary_itemclicked)
         self.scanresults.itemClicked.connect(self.on_scanresults_itemclicked)
-
-
+        self.b_id = ""
 
         self._plugins =  set()  # Keep a set of loaded plugins(no duplicate modules)
-        self._scan_thread = ScanThread(self)
-        self._scan_thread.ScanIpChanged.connect(self.onScanIpChanged)
-        self._scan_thread.OneScanFinished.connect(self.onOneScanFinished)
-        self._scan_thread.ScanStatusChanged.connect(self.onScanStatusChanged)
+        self._scan_threadpool = QThreadPool()
+
 
     def onScanStatusChanged(self,status):
         if status==True:
@@ -120,10 +126,11 @@ class ScanForm(QWidget, scan_form):
     def onOneScanFinished(self, scan_target):
         
         if scan_target.result['Exist']:
-            self.scanresults.addItem(scan_target.host)
+            self.scanresults.addItem(scan_target.target)
             u_id = str(uuid1())
             s_id = str(uuid1())
 
+            scan_target.b_id = self.b_id
             scan_target.u_id = u_id
             scan_target.s_id = s_id
 
@@ -133,26 +140,38 @@ class ScanForm(QWidget, scan_form):
 
     @pyqtSlot()
     def on_scan_clicked(self):
-
-        self.removeListWidgets(self.scanresults)
-        self.removeListWidgets(self.targetsumary)
-
-        selected_plugins = [item.text() for item in self.pluginlists.selectedItems()]
-
-        modulelists = [plugin for plugin in self._plugins if plugin.__name__ in selected_plugins]
-        iplists = [item.text() for item in self.scanlists.selectedItems()]
         
+        self.removeListWidgets(self.scanresults)
+        self.targetsumary.setText("Scan Target Summary")
+        
+        selected_plugins = [item.text() for item in self.pluginlists.selectedItems()]
+        modulelists = [plugin for plugin in self._plugins if plugin.__name__ in selected_plugins]
 
         if self.hosts.text() != "":
             iplists = [self.hosts.text()]
-            
+
+        iplists = [item.text() for item in self.scanlists.selectedItems()]
+
+        if not iplists:
+            iplists = [self.scanlists.item(i).text() for i in range(self.scanlists.count())]
+
         if iplists and modulelists:
-    
-            self._scan_thread.set_argument(iplists,modulelists)
-            self._scan_thread.start()
+            # Current Scan Batch
+            self.b_id = str(uuid1())
+
+            for ip in iplists:
+                scan_worker = ScanWorker(modulelists[0].poc,ip)
+                scan_worker.signals.targetchanged.connect(self.onScanIpChanged)
+                scan_worker.signals.result.connect(self.onOneScanFinished)
+                scan_worker.signals.statuschanged.connect(self.onScanStatusChanged)
+                self._scan_threadpool.start(scan_worker)
+
         else:
             self.status.setText("Select Target And Pulgin")
             self.status.setStyleSheet('color: red')
+        
+        self.lcddisplay()
+
 
     @pyqtSlot()
     def on_removescan_clicked(self):
@@ -173,7 +192,7 @@ class ScanForm(QWidget, scan_form):
                     self.scanlists.addItem(ip.strip())            
 
         except Exception as e:
-            print(e)
+            print("on_loadipfile_clicked: " ,e)
             pass
 
         self.lcddisplay()
@@ -196,7 +215,7 @@ class ScanForm(QWidget, scan_form):
             self.targetdetails.setText(detail)
 
         except  Exception as e:
-            print(e)
+            print("on_scanresults_itemclicked: " , e)
             pass
 
 
@@ -219,13 +238,11 @@ class ScanForm(QWidget, scan_form):
                             self.pluginlists.addItem(module.__name__)
                         else:
                             pass
-                    
             else:
                 self.status.setText("Please Make Sure Your Plugin is end with py")
                 self.status.setStyleSheet('color: red')
             
             self.lcddisplay()
-            
 
     @pyqtSlot()
     def on_exportresult_clicked(self):
@@ -244,7 +261,7 @@ class ScanForm(QWidget, scan_form):
                 self.status.setText("Export to file done")
 
         except Exception as e:
-            print(e)
+            print("on_exportresult_clicked: " , e)
             pass
 
     # Summary selected show details
@@ -259,7 +276,7 @@ class ScanForm(QWidget, scan_form):
                 return fileName
 
         except Exception as e:
-            print(e)
+            print("setOpenFileName: " , e)
             pass
 
     def lcddisplay(self):
@@ -280,7 +297,7 @@ class ScanForm(QWidget, scan_form):
             else:
                 return
         except Exception as e:
-            print(e)
+            print("removeListWidgets: " , e)
             pass
 
     def showresults(self, flag, result):
