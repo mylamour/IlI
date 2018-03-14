@@ -2,7 +2,7 @@
 
 
 from lib.util.datatype import AttribDict
-from lib.util.db import summary2detail, insertDB
+from lib.util.db import summary2detail, insertDB, exportDB
 
 from contextlib import contextmanager
 import os,sys
@@ -141,6 +141,8 @@ class ScanForm(QWidget, scan_form):
     @pyqtSlot()
     def on_scan_clicked(self):
         
+        iplists = []
+
         self.removeListWidgets(self.scanresults)
         self.targetsumary.setText("Scan Target Summary")
         
@@ -150,10 +152,10 @@ class ScanForm(QWidget, scan_form):
         if self.hosts.text() != "":
             iplists = [self.hosts.text()]
 
-        iplists = [item.text() for item in self.scanlists.selectedItems()]
 
         if not iplists:
-            iplists = [self.scanlists.item(i).text() for i in range(self.scanlists.count())]
+            iplists = [item.text() for item in self.scanlists.selectedItems()]
+            # iplists = [self.scanlists.item(i).text() for i in range(self.scanlists.count())]
 
         if iplists and modulelists:
             # Current Scan Batch
@@ -177,7 +179,7 @@ class ScanForm(QWidget, scan_form):
     def on_removescan_clicked(self):
         
         self.removeListWidgets(self.scanlists)
-        self.removeListWidgets(self.pluginlists)
+        # self.removeListWidgets(self.pluginlists)
         self.removeListWidgets(self.scanresults)
         # self.removeListWidgets(self.targetsumary)
 
@@ -250,15 +252,16 @@ class ScanForm(QWidget, scan_form):
             if self.exportpath.text() != "":
                 fileName = self.exportpath.text()
             else:
-                fileName = self.setOpenFileName()
+                fileName = self.setSaveFileName()
 
-            with open(fileName+'.res', 'a') as f:
-                for i in range(self.targetsumary.count()):
-                    res = str(self.targetsumary.item(i).text())
+            exportDB(self.b_id, fileName)
+            # with open(fileName+'.res', 'a') as f:
+            #     for i in range(self.targetsumary.count()):
+            #         res = str(self.targetsumary.item(i).text())
 
-                    f.writelines(res+'\n')
+            #         f.writelines(res+'\n')
 
-                self.status.setText("Export to file done")
+            self.status.setText("Export to file done")
 
         except Exception as e:
             print("on_exportresult_clicked: " , e)
@@ -278,6 +281,21 @@ class ScanForm(QWidget, scan_form):
         except Exception as e:
             print("setOpenFileName: " , e)
             pass
+
+    def setSaveFileName(self):    
+        options = QFileDialog.Options()
+        try:
+            fileName, _ = QFileDialog.getSaveFileName(self,
+                                                   "  Save Scan Results To File", self.status.text(),
+                                                   "All Files (*);;Text Files (*.txt)", options=options)
+            if fileName:
+                self.status.setText("Saveing File To :" + fileName)
+                return fileName
+
+        except Exception as e :
+            print("setSaveFileNameL ", e)
+            pass
+
 
     def lcddisplay(self):
         self.hostscount.display(self.scanlists.count())
