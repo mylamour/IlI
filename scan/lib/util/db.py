@@ -56,7 +56,7 @@ def summary2detail(summaryid):
     res = SCAN.select().dicts().where(SCAN.s_item == summaryid)
     print(Fore.GREEN + "[+] :"+Fore.RESET + res[0]['s_item'])
     print("\t--",res[0]['s_summary'])
-    print("\t--",res[0]['s_details'])
+    # print("\t--",res[0]['s_details'])
 
     return res[0]['s_summary'], res[0]['s_details']
 

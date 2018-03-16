@@ -1,14 +1,18 @@
-import queue
-import threading
 import requests
 import random
 import re
 
 from colorama import Fore, Back, Style
 
-result = []
+Exist = None
+_ = {
+    "Exist": Exist,
+    "Problility":  "",
+    'Summary': "",
+    "Details": ""
+}
 
-uqueue = queue.Queue()
+
 
 USER_AGENT_LIST = [
     {'User-agent': 'Mozilla/5.0 (Windows; U; Windows NT 5.1; de; rv:1.9.1.5) Gecko/20091102 Firefox/3.5.5'},
@@ -44,8 +48,10 @@ def get_random_header():
 def formathost(ip,port):
     return {"http": "http://{}:{}".format(ip,port), "https": "https://{}:{}".format(ip,port)}
 
+
 def poc(ip):
-    
+    print("Checking" + Fore.GREEN + "[+]: " + Fore.RESET, ip)
+
     host = formathost(ip,80)
 
     try:
@@ -54,9 +60,11 @@ def poc(ip):
             host.get('http'), headers=header, timeout=3)
 
         if res.status_code == 200:
-            print(Fore.GREEN+"[+]"+Fore.RESET+host.get('http'))
-            return True, res.content
+            _['Exist'] = True
+            _['Details'] = res.text
+            
+            return _
 
     except Exception as e:
-        print(e)
-        return False,None
+        _['Exist'] = False
+        return _

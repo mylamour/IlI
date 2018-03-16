@@ -124,19 +124,23 @@ class ScanForm(QWidget, scan_form):
         self.status.setStyleSheet('color: red')
         
     def onOneScanFinished(self, scan_target):
-        
-        if scan_target.result['Exist']:
-            self.scanresults.addItem(scan_target.target)
-            u_id = str(uuid1())
-            s_id = str(uuid1())
+        try:
+           if scan_target.result['Exist']:
+                self.scanresults.addItem(scan_target.target)
+                u_id = str(uuid1())
+                s_id = str(uuid1())
 
-            scan_target.b_id = self.b_id
-            scan_target.u_id = u_id
-            scan_target.s_id = s_id
+                scan_target.b_id = self.b_id
+                scan_target.u_id = u_id
+                scan_target.s_id = s_id
 
-            insertDB(scan_target)
-        
-            self.targetsumary.setText(scan_target.result['Summary'])
+                insertDB(scan_target)
+            
+                self.targetsumary.setText(scan_target.result['Summary'])
+         
+        except Exception as e :
+            print("onOneScanFinished",e)
+            pass
 
     @pyqtSlot()
     def on_scan_clicked(self):
@@ -156,6 +160,10 @@ class ScanForm(QWidget, scan_form):
         if not iplists:
             iplists = [item.text() for item in self.scanlists.selectedItems()]
             # iplists = [self.scanlists.item(i).text() for i in range(self.scanlists.count())]
+
+        if not iplists:
+            iplists = [self.scanlists.item(i).text() for i in range(self.scanlists.count())]
+
 
         if iplists and modulelists:
             # Current Scan Batch
