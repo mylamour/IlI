@@ -9,7 +9,7 @@ Little Tools, Just For Fun(when i was tired to process my task )
 * Implement your code with funcation named `poc`
 * make sure return data like this
 
-```json
+```
         res = {
             "Exist": True,
             "Problility":  summary,
@@ -20,11 +20,12 @@ Little Tools, Just For Fun(when i was tired to process my task )
 
 Have Fun
 
+Text Summarization already ready for it.
 
 # Todo
 
-- [ ] Thread Pools
-- [ ] Use Text Summarization To Find intersting things
+- [x] Thread Pools
+- [x] Use Text Summarization To Find intersting things
 - [ ] Plugins with data flow( Mostly like to use luigi)
 - [ ] Others..
 

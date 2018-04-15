@@ -18,6 +18,7 @@ else:
         return buf[start_offset:end_offset]
 
 
+# Phone code from phone, also you can install it with `pip install phone` 
 class Phone(object):
     def __init__(self, dat_file=None):
 
@@ -164,7 +165,7 @@ if automate.lower() == "y":
 
 else:
     
-    infoneed = input("请输入前3位或前7位: ")
+    infoneed = input("请输入前3位,前6位或者前7位: ")
     if len(infoneed) == 3:
         preffix = infoneed
     elif len(infoneed) == 7:
