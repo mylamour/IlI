@@ -41,7 +41,7 @@
     <item>
      <widget class="QLineEdit" name="ports">
       <property name="enabled">
-       <bool>true</bool>
+       <bool>false</bool>
       </property>
       <property name="maximumSize">
        <size>
@@ -86,6 +86,9 @@
     </item>
     <item>
      <widget class="QPushButton" name="check">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
       <property name="text">
        <string>Check</string>
       </property>
@@ -98,7 +101,7 @@
     <rect>
      <x>170</x>
      <y>80</y>
-     <width>101</width>
+     <width>111</width>
      <height>291</height>
     </rect>
    </property>
@@ -120,14 +123,14 @@
     <item>
      <widget class="QPushButton" name="loadipfile">
       <property name="text">
-       <string>LoadIP</string>
+       <string>Targets</string>
       </property>
      </widget>
     </item>
     <item>
      <widget class="QPushButton" name="loadplugins">
       <property name="text">
-       <string>LoadPlugin</string>
+       <string>Plugins</string>
       </property>
      </widget>
     </item>

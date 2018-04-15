@@ -13,7 +13,7 @@ import sys
 import hashlib
 import base64
 import argparse
-
+import json
 # from web import sqlite_web
 
 DBPATH = os.path.abspath('scanres.db')
@@ -56,7 +56,7 @@ def summary2detail(summaryid):
     res = SCAN.select().dicts().where(SCAN.s_item == summaryid)
     print(Fore.GREEN + "[+] :"+Fore.RESET + res[0]['s_item'])
     print("\t--",res[0]['s_summary'])
-    print("\t--",res[0]['s_details'])
+    # print("\t--",res[0]['s_details'])
 
     return res[0]['s_summary'], res[0]['s_details']
 
@@ -86,13 +86,22 @@ def insertDB(scanres):
     except IntegrityError as e:
         pass
 
-def exportDB(ruletype):
-    pass
-
+def exportDB(sacnbatch_id, filename):
+    try:
+        res = SCAN.select().dicts().where(SCAN.b_id == sacnbatch_id)
+        with open(filename, 'w') as f:
+            for item in res:
+                f.write(item['s_item']+",")
+                f.write(item['s_summary']+",")
+                f.write(json.dumps(item['s_result'],  ensure_ascii=False))
+                f.write('\n')
+                
+    except Exception as e :
+        print(Fore.RED + "ExportDB" + Fore.RESET,e)
+        pass
 
 def readDB():
     pass
-
 
 def listDB(limit):
     pass
