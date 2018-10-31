@@ -1,8 +1,11 @@
-增加列出关注channel的功能
-根据channel下载的功能
-吆西吆西
+ToDo:
+* [ ] 增加列出关注channel的功能
+* [ ] 根据channel下载的功能
 
-https://telethon.readthedocs.io/
+Useage:
+* `python main.py download --channel titswiki --output image`
 
 
-python main.py download --channel titswiki --output image
+# Reference
+
+* [Telethon Doc](https://telethon.readthedocs.io/)
