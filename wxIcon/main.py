@@ -27,9 +27,9 @@ numline = int(640 / eachsize)
 
 toImage = Image.new('RGBA', (640, 640))
 
-for i in pics:
+for pic in pics:
     try:
-        img = Image.open(user + "/" + i)
+        img = Image.open(os.path.join(user,pic))
     except Exception as e:
         continue
 
