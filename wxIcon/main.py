@@ -1,9 +1,6 @@
 import os
 import math
-import glob
 import itchat
-import urllib
-import requests
 import PIL.Image as Image
 
 x = 0
